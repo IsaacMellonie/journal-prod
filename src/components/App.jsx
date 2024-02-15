@@ -1,19 +1,30 @@
-import React, { useEffect, useState } from "react"
+import { createContext, useEffect, useReducer } from "react"
 import Home from "./Home"
 import CategorySelection from "./CategorySelection"
 import NewEntry from "./NewEntry"
 import { BrowserRouter, Route, Routes, useParams } from "react-router-dom"
 import NavBar from "./NavBar"
 import ShowEntry from './ShowEntry'
+import reducer, { journalContext } from '../reducer.js'
+
 
 const App = () => {
     // lift state up to the common parent component so that CategorySelection
     // and NewEntry can recieve categories as a prop.
     // State can be updated at any point while the app is running and it 
     // will auto update to reflect the new categories.
-    const [categories, setCategories] = useState([])
+    // const [categories, setCategories] = useState([])
     // useState for entries is set to as default empty array
-    const [entries, setEntries] = useState([])
+    // const [entries, setEntries] = useState([])
+    const [state, dispatch] = useReducer(reducer, {categories: [], entries: []})
+    const { categories, entries } = state
+
+    // a variable for reading the state.
+    // dispatch is the dispatcher function, it dispatches a message to the reducer function (action)
+    // useReducer is passed the function and the state (object)
+    
+
+
 
         //useEfect is sending a fetch request to the URL which returns the categories
         // Then the same again for entries. 
@@ -21,11 +32,20 @@ const App = () => {
         useEffect(() => {
             fetch("https://journal-api-prod-mbbl.onrender.com/categories")
                 .then((res) => res.json())
-                .then((data) => setCategories(data))
+                .then((data) => dispatch({
+                    type: 'set categories',
+                    data: data
+                })
+                )
     
             fetch("https://journal-api-prod-mbbl.onrender.com/entries")
                 .then((res) => res.json())
-                .then((data) => setEntries(data))
+                .then((data) => dispatch({
+                    type: 'set entries',
+                    data: data
+                })
+                )
+
         }, []) // Empty array so they both only happen on mounting 
 
     ///addEntry needs to be declared in App,
@@ -64,7 +84,11 @@ const App = () => {
             body: JSON.stringify(newEntry)
         })
         const data = await res.json()
-        setEntries([...entries, data])
+        // setEntries([...entries, data])
+        dispatch({
+            type: 'add entry',
+            data: data
+        })
         // 2. Add new entry to the entries list
         return newId
     }
@@ -79,11 +103,11 @@ const App = () => {
     }
 
     return (
-        <>
+        <journalContext.Provider value={ state }>
             <BrowserRouter>
                 <NavBar />
                 <Routes>
-                    <Route path="/" element={<Home entries={entries}/>} />
+                    <Route path="/" element={<Home />} />
                     <Route path="/category" element={<CategorySelection categories={categories} />} />
                     <Route path="/entry">
                         {/* harcoded data to test initially */}
@@ -97,7 +121,7 @@ const App = () => {
             {/* <Home />
             <CategorySelection />
             <NewEntry /> */}
-        </>
+        </journalContext.Provider>
     )
 }
 
